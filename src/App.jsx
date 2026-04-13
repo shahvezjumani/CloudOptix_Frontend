@@ -1,30 +1,40 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
-import { AnimatePresence } from 'framer-motion'
+import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, useLocation } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 import OTPPage from './pages/OTPPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import Test from './pages/Test'
+import AnimatedLayout from './layouts/AnimatedLayout'
+import ProtectedLayout from './layouts/ProtectedRoute'
+import useAuthStore from './store/auth.store'
 
 function AnimatedRoutes() {
-  const location = useLocation()
-  return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<LandingPage />} />
+
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated)
+
+  const router = createBrowserRouter(
+    createRoutesFromElements(<>
+      <Route element={<AnimatedLayout />}>
+        <Route path='/' element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/otp" element={<OTPPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      </Routes>
-    </AnimatePresence>
+        <Route element={<ProtectedLayout isAuthenticated={isAuthenticated} />}>
+          <Route path="/test/*" element={<Test />} />
+        </Route>
+      </Route>
+      <Route path="*" element={<div className='flex items-center justify-center h-screen text-2xl'>404 - Page Not Found</div>} /></>
+    )
   )
+
+
+  return router
 }
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AnimatedRoutes />
-    </BrowserRouter>
+    <RouterProvider router={AnimatedRoutes()} />
   )
 }
