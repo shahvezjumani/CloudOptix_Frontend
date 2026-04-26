@@ -1,4 +1,8 @@
-import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Navigate } from 'react-router-dom'
+import { useEffect, useMemo } from 'react'
+import useAuthStore from './store/auth.store'
+
+// Pages & Layouts
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
@@ -13,52 +17,64 @@ import AISearchPage from './pages/AISearchPage'
 import OptimizationPage from './pages/OptimizationPage'
 import SharedFilesPage from './pages/SharedFilesPage'
 import SettingsPage from './pages/SettingsPage'
-import useAuthStore from './store/auth.store'
-import { useEffect } from 'react'
-
-const router = createBrowserRouter(
-
-  createRoutesFromElements(
-    <>
-      <Route element={<AnimatedLayout />}>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="/otp" element={<OTPPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      </Route>
-
-      <Route path="/dashboard" element={<DashboardLayout />}>
-        <Route index element={<DashboardHome />} />
-        <Route path="files" element={<MyFilesPage />} />
-        <Route path="upload" element={<UploadPage />} />
-        <Route path="ai-search" element={<AISearchPage />} />
-        <Route path="optimization" element={<OptimizationPage />} />
-        <Route path="shared" element={<SharedFilesPage />} />
-        <Route path="settings" element={<SettingsPage />} />
-      </Route>
-
-      <Route path="*" element={<div className="flex items-center justify-center h-screen text-2xl text-white">404 — Page Not Found</div>} />
-    </>
-  )
-)
+import ProtectedRoute from './layouts/ProtectedRoute' // Import your ProtectedRoute
 
 export default function App() {
+  const { authReady, init, user } = useAuthStore()
 
-  // const { authReady, init } = useAuthStore()
-  // useEffect(() => {
-  //   init(); // silently restore session on page refresh
-  // }, []);
+  useEffect(() => {
+    init(); // Silently restore session
+  }, [init]);
 
-  // Don't render anything until we know auth state
-  // prevents flashing /login when user is actually logged in
-  // if (!authReady) {
-  //   return (
-  //     <div className="flex items-center justify-center h-screen">
-  //       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-  //     </div>
-  //   );
-  // }
+  // We use useMemo to prevent the router from being re-created on every render,
+  // but it will re-evaluate correctly when 'user' changes.
+  const router = useMemo(() =>
+    createBrowserRouter(
+      createRoutesFromElements(
+        <>
+          {/* Public Routes */}
+          <Route element={<AnimatedLayout />}>
+            <Route path="/" element={<LandingPage />} />
+            {/* If user is logged in, redirect them away from login/signup to dashboard */}
+            <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+            <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <SignupPage />} />
+            {/* <Route path="/otp" element={<OTPPage />} /> */}
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          </Route>
 
-  return <RouterProvider router={router} />
+          {/* Protected Dashboard Routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute isAuthenticated={!!user}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<DashboardHome />} />
+            <Route path="files" element={<MyFilesPage />} />
+            <Route path="upload" element={<UploadPage />} />
+            <Route path="ai-search" element={<AISearchPage />} />
+            <Route path="optimization" element={<OptimizationPage />} />
+            <Route path="shared" element={<SharedFilesPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
+
+          {/* 404 Route */}
+          <Route path="*" element={<div className="flex items-center justify-center h-screen text-2xl text-white">404 — Page Not Found</div>} />
+        </>
+      )
+    ), [user]); // Re-run this logic whenever the user state changes
+
+  // 1. Wait for Auth to be ready (prevents flash of login page)
+  if (!authReady) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[#09090b]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      </div>
+    );
+  }
+
+  // 2. Render the router once auth is checked
+  return <RouterProvider router={router} />;
 }

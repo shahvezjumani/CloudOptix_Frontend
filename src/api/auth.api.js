@@ -84,18 +84,21 @@ export const getMe = async () => {
 // returns: user object if restored, null if cookie expired
 export const restoreSession = async () => {
   try {
-    const { data } = await apiClient.post("/auth/refresh");
+    // 1. Try to get a new access token using the HttpOnly cookie
+    const { data } = await apiClient.post("/auth/refresh-token");
     const newToken = data.data?.accessToken;
 
     if (!newToken) return null;
 
     setAccessToken(newToken);
 
-    // Fetch user info after restoring token
-    const user = await getMe();
-    return user;
+    // 2. Get user profile
+    const userResponse = await apiClient.get("/auth/me");
+    return userResponse.data.data;
   } catch {
+    // If refresh fails, the cookie is likely expired/missing.
+    // Just return null so init() can set authReady to true.
     clearAccessToken();
-    return null; // cookie expired → show login
+    return null;
   }
 };

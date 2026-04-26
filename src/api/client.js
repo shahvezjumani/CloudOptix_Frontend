@@ -50,9 +50,9 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
     console.log("API error:", error, originalRequest);
     // Don't retry refresh endpoint itself — prevents infinite loop
-    if (originalRequest.url?.includes("/auth/refresh")) {
+    if (originalRequest.url?.includes("/auth/refresh-token")) {
       clearAccessToken();
-      window.location.href = "/login";
+      // window.location.href = "/login";
       return Promise.reject(error);
     }
 
@@ -74,7 +74,7 @@ apiClient.interceptors.response.use(
 
       try {
         // Cookie sent automatically via withCredentials
-        const { data } = await apiClient.post("/auth/refresh");
+        const { data } = await apiClient.post("/auth/refresh-token");
 
         // Your ApiResponse shape: { statusCode, data: { accessToken }, message }
         const newToken = data.data?.accessToken;
@@ -89,7 +89,7 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         clearAccessToken();
-        window.location.href = "/login";
+        // window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
