@@ -1,3 +1,4 @@
+import useAuthStore from "../store/auth.store";
 import apiClient, { setAccessToken, clearAccessToken } from "./client";
 
 // ── Register ──────────────────────────────────────────────────────────────────
@@ -51,6 +52,8 @@ export const login = async ({ email, password }) => {
 export const logout = async () => {
   try {
     await apiClient.post("/auth/logout");
+    // CALL THE STORE LOGOUT HERE
+    useAuthStore.getState().logout();
   } catch {
     // If server is unreachable, still clear memory
   } finally {

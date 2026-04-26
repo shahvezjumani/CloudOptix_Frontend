@@ -8,6 +8,7 @@ import SocialButtons from '../components/auth/SocialButtons'
 import FormError from '../components/auth/FormError'
 import { fieldVariants } from '../utils/authAnimations'
 import { login } from '../api/auth.api'
+import useAuthStore from '../store/auth.store'
 
 export default function LoginPage() {
     const navigate = useNavigate()
@@ -17,19 +18,29 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
+    const { login } = useAuthStore()
+
     const handleSubmit = async (e) => {
-        e.preventDefault()
-        setError('')
-        if (!email || !password) { setError('Please fill in all fields.'); return }
-        setLoading(true)
-        const response = await login({ email, password })
-        setLoading(false)
-        if (response.success) {
-            navigate('/dashboard')
-        } else {
-            setError(response.message)
+        e.preventDefault();
+        setError('');
+        if (!email || !password) { setError('Please fill in all fields.'); return; }
+
+        setLoading(true);
+        try {
+            const response = await login({ email, password });
+            // You don't necessarily need navigate() here because 
+            // App.jsx will see 'user' is now true and swap LoginPage for a Navigate component.
+            login(response);
+
+            if (!response.success) {
+                setError(response.message);
+            }
+        } catch (err) {
+            setError("Login failed. Please try again.");
+        } finally {
+            setLoading(false);
         }
-    }
+    };
 
     return (
         <AuthLayout title="Welcome back" subtitle="Sign in to continue to CloudOptix">
