@@ -1,6 +1,6 @@
 import axios from "axios";
 
-// ── In-memory token store — not accessible to XSS ────────────────────────────
+// ── In-memory token store — never touches localStorage ───────────────────────
 let accessToken = null;
 
 export const setAccessToken = (token) => {
@@ -14,8 +14,8 @@ export const clearAccessToken = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api",
-  withCredentials: true, // ← CRITICAL: sends httpOnly cookie on every request
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1",
+  withCredentials: true, // sends httpOnly refreshToken cookie automatically
   headers: {
     "Content-Type": "application/json",
   },
@@ -48,10 +48,17 @@ apiClient.interceptors.response.use(
 
   async (error) => {
     const originalRequest = error.config;
+    console.log("API error:", error, originalRequest);
+    // Don't retry refresh endpoint itself — prevents infinite loop
+    if (originalRequest.url?.includes("/auth/refresh")) {
+      clearAccessToken();
+      window.location.href = "/login";
+      return Promise.reject(error);
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // Queue all requests while refresh is happening
+        // Queue requests while refresh is in progress
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -59,18 +66,21 @@ apiClient.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${token}`;
             return apiClient(originalRequest);
           })
-          .catch(Promise.reject);
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        // Cookie is sent automatically (withCredentials: true)
-        // Backend reads httpOnly cookie, returns new accessToken
+        // Cookie sent automatically via withCredentials
         const { data } = await apiClient.post("/auth/refresh");
 
-        const newToken = data.data.accessToken;
+        // Your ApiResponse shape: { statusCode, data: { accessToken }, message }
+        const newToken = data.data?.accessToken;
+        if (!newToken) {
+          throw new Error("Invalid refresh response");
+        }
         setAccessToken(newToken);
         processQueue(null, newToken);
 
@@ -79,7 +89,6 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         clearAccessToken();
-        // Redirect to login — refresh token also expired
         window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {

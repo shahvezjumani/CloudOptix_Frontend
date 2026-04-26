@@ -7,6 +7,7 @@ import InputField from '../components/auth/InputField'
 import SocialButtons from '../components/auth/SocialButtons'
 import FormError from '../components/auth/FormError'
 import { fieldVariants } from '../utils/authAnimations'
+import { login } from '../api/auth.api'
 
 export default function LoginPage() {
     const navigate = useNavigate()
@@ -21,10 +22,13 @@ export default function LoginPage() {
         setError('')
         if (!email || !password) { setError('Please fill in all fields.'); return }
         setLoading(true)
-        // Simulated API call
-        await new Promise(r => setTimeout(r, 1400))
+        const response = await login({ email, password })
         setLoading(false)
-        // navigate('/dashboard')
+        if (response.success) {
+            navigate('/dashboard')
+        } else {
+            setError(response.message)
+        }
     }
 
     return (

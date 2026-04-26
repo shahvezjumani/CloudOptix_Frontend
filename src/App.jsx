@@ -13,8 +13,11 @@ import AISearchPage from './pages/AISearchPage'
 import OptimizationPage from './pages/OptimizationPage'
 import SharedFilesPage from './pages/SharedFilesPage'
 import SettingsPage from './pages/SettingsPage'
+import useAuthStore from './store/auth.store'
+import { useEffect } from 'react'
 
 const router = createBrowserRouter(
+
   createRoutesFromElements(
     <>
       <Route element={<AnimatedLayout />}>
@@ -41,5 +44,21 @@ const router = createBrowserRouter(
 )
 
 export default function App() {
+
+  // const { authReady, init } = useAuthStore()
+  // useEffect(() => {
+  //   init(); // silently restore session on page refresh
+  // }, []);
+
+  // Don't render anything until we know auth state
+  // prevents flashing /login when user is actually logged in
+  // if (!authReady) {
+  //   return (
+  //     <div className="flex items-center justify-center h-screen">
+  //       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+  //     </div>
+  //   );
+  // }
+
   return <RouterProvider router={router} />
 }
