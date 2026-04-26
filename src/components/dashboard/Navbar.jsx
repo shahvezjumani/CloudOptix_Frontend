@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bell, Search, ChevronDown, LogOut, User, Settings, Check } from 'lucide-react'
+import { logout } from '../../api/auth.api'
 
 const notifications = [
     { id: 1, text: '12 duplicate files detected by AI', time: '2m ago', unread: true },
@@ -12,6 +13,10 @@ export default function Navbar({ sidebarCollapsed }) {
     const [showNotifs, setShowNotifs] = useState(false)
     const [showProfile, setShowProfile] = useState(false)
     const [searchFocused, setSearchFocused] = useState(false)
+
+    const handleLogout = async () => {
+        await logout()
+    }
 
     return (
         <header
@@ -94,13 +99,14 @@ export default function Navbar({ sidebarCollapsed }) {
                                 className="absolute right-0 top-11 w-44 bg-[#13131f] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50"
                             >
                                 {[
-                                    { icon: User, label: 'Profile', danger: false },
-                                    { icon: Settings, label: 'Settings', danger: false },
-                                    { icon: LogOut, label: 'Log out', danger: true },
-                                ].map(({ icon: Icon, label, danger }) => (
+                                    { icon: User, label: 'Profile', danger: false, handler: null },
+                                    { icon: Settings, label: 'Settings', danger: false, handler: null },
+                                    { icon: LogOut, label: 'Log out', danger: true, handler: handleLogout },
+                                ].map(({ icon: Icon, label, danger, handler }) => (
                                     <button
                                         key={label}
                                         className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5 ${danger ? 'text-red-400 hover:text-red-300' : 'text-slate-400 hover:text-white'}`}
+                                        onClick={handler}
                                     >
                                         <Icon size={14} /> {label}
                                     </button>
